@@ -17,6 +17,7 @@ class Settings(BaseSettings):
 
     max_pages: int = Field(default=50, description="Макс. страниц для рендера")
     prompt_file: str = Field(default="app/prompts/extract.md")
+    log_level: str = Field(default="INFO")
     analysis_mode: Literal["local", "cloud"] = Field(default="local")
 
 @lru_cache
