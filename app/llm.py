@@ -5,7 +5,7 @@ from pathlib import Path
 from openai import OpenAI
 
 from .config import BASE_DIR, Settings
-from .extract import ExtractedDoc
+from .extract import SOURCE_MEDIA, ExtractedDoc
 from .schemas import ExtractionResult
 
 logger = logging.getLogger(__name__)
@@ -82,7 +82,7 @@ class LLMClient:
                 pass
         raise LLMError("Ответ модели не удалось разобрать как JSON")
 
-    def _call(self, messages: list[dict]) -> dict:
+    def _call(self, messages: list[dict], text_source: bool) -> dict:
         logger.debug("[llm.py] call _call()")
 
         base = dict(
@@ -92,7 +92,10 @@ class LLMClient:
             max_tokens=self.settings.llm_max_tokens,
         )
         attempts: list[dict] = []
-        attempts.append({**base, "response_format": {"type": "json_object"}})
+        if text_source:
+            # Сначала JSON-mode; при любом сбое пробуем обычный вызов.
+            attempts.append({**base, "response_format": {"type": "json_object"}})
+        attempts.append(base)
 
         last_error: str | Exception | None = None
         for index, kwargs in enumerate(attempts, start=1):
@@ -116,17 +119,18 @@ class LLMClient:
 
     def extract(self, doc: ExtractedDoc) -> ExtractionResult:
         logger.debug(
-            "extract: content_len=%d",
-            len(doc.content),
+            "extract: source=%s content_len=%d images=%d",
+            doc.source, len(doc.content), len(doc.page_images),
         )
 
         if not self.settings.llm_api_key:
             raise LLMError("LLM_API_KEY не задан")
 
+        text_source = doc.source != SOURCE_MEDIA
         user_content = self._user_content(doc)
         messages = [
             {"role": "system", "content": self._build_system_message()},
             {"role": "user", "content": user_content},
         ]
-        data = self._call(messages)
+        data = self._call(messages, text_source=text_source)
         return ExtractionResult.model_validate(data)

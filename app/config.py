@@ -15,7 +15,11 @@ class Settings(BaseSettings):
     llm_max_tokens: int = Field(default=2000)
     llm_timeout: float = Field(default=120.0)
 
-    max_pages: int = Field(default=50, description="Макс. страниц для рендера")
+    # Гибридная схема извлечения текста
+    pdf_min_chars: int = Field(default=300, description="Мин. символов текста")
+    ocr_enabled: bool = Field(default=True)
+    ocr_lang: str = Field(default="rus")
+    max_pages: int = Field(default=50, description="Макс. страниц для OCR/рендера")
     prompt_file: str = Field(default="app/prompts/extract.md")
     log_level: str = Field(default="INFO")
     analysis_mode: Literal["local", "cloud"] = Field(default="local")

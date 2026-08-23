@@ -58,6 +58,17 @@ def analyze(
         logger.exception("Ошибка извлечения из PDF")
         raise HTTPException(status_code=422, detail="Не удалось прочитать PDF-файл") from exc
 
+    logger.debug("Извлечение: source=%s mode=%s", doc.source, mode)
+
+    if doc.source == extract.SOURCE_NONE:
+        if mode == extract.MODE_LOCAL:
+            raise HTTPException(
+                status_code=422,
+                detail="Не удалось прочитать текст из документа (вероятно, это скан). "
+                "Попробуйте mode=cloud.",
+            )
+        raise HTTPException(status_code=422, detail="Не удалось отрендерить страницы PDF")
+
     if not settings.llm_api_key:
         raise HTTPException(status_code=500, detail="LLM_API_KEY не задан")
 
