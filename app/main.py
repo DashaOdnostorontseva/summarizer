@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import logging
+import time
+import uuid
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from . import extract
 from .config import get_settings
@@ -25,6 +28,30 @@ def get_client() -> LLMClient:
     if _client is None:
         _client = LLMClient(settings)
     return _client
+
+
+class RequestIdMiddleware(BaseHTTPMiddleware):
+    """Добавляет request-id и пишет короткую строку лога на каждый запрос."""
+
+    async def dispatch(self, request: Request, call_next):
+        request_id = uuid.uuid4().hex
+        request.state.request_id = request_id
+        start = time.perf_counter()
+        response = await call_next(request)
+        elapsed = (time.perf_counter() - start) * 1000
+        logger.info(
+            "%s %s -> %s (%.1f ms) rid=%s",
+            request.method,
+            request.url.path,
+            response.status_code,
+            elapsed,
+            request_id,
+        )
+        response.headers["X-Request-ID"] = request_id
+        return response
+
+
+app.add_middleware(RequestIdMiddleware)
 
 _ALLOWED_MIME = {None, "application/pdf", "application/octet-stream"}
 
