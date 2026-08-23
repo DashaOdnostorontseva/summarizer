@@ -39,6 +39,11 @@ def analyze(
     file: UploadFile = File(...),
     mode: ProcessMode = Form(default=settings.analysis_mode),
 ) -> ExtractionResult:
+    """Принимает PDF и возвращает краткую выжимку
+
+    mode=local — локальное извлечение текста (pdfplumber или tesseract), медиа в модель не уходит;
+    mode=cloud — страницы-картинки отправляются напрямую в модель.
+    """
     if file.content_type not in _ALLOWED_MIME:
         raise HTTPException(status_code=400, detail="Ожидается PDF-файл (application/pdf)")
 
