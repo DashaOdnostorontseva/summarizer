@@ -1,3 +1,4 @@
+import base64
 import json
 import logging
 from pathlib import Path
@@ -54,6 +55,32 @@ class LLMClient:
     def _user_content(self, doc: ExtractedDoc):
         logger.debug("[llm.py] call _user_content()")
 
+        if doc.source == SOURCE_MEDIA:
+            available = len(doc.page_images)
+            sent = min(available, self.settings.media_max_images)
+            if available > sent:
+                logger.debug(
+                    "media: доступно %d, отправлено %d (media_max_images=%d) — ЧАСТИЧНО",
+                    available, sent, self.settings.media_max_images,
+                )
+            else:
+                logger.debug("media: отправлено %d страниц — ПОЛНОСТЬЮ", sent)
+            parts: list[dict] = [
+                {
+                    "type": "text",
+                    "text": "Документ не распознан как текст, он приложен картинками. "
+                    "Изучи изображения и извлеки данные.",
+                }
+            ]
+            for image_bytes in doc.page_images[: self.settings.media_max_images]:
+                encoded = base64.b64encode(image_bytes).decode("ascii")
+                parts.append(
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/png;base64,{encoded}"},
+                    }
+                )
+            return parts
         content = doc.content
         if len(content) > MAX_TEXT_CHARS:
             logger.debug(

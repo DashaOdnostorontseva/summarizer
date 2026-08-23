@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     ocr_enabled: bool = Field(default=True)
     ocr_lang: str = Field(default="rus")
     max_pages: int = Field(default=50, description="Макс. страниц для OCR/рендера")
+    media_max_images: int = Field(default=5, description="Страниц-картинок в vision-модель")
     prompt_file: str = Field(default="app/prompts/extract.md")
     log_level: str = Field(default="INFO")
     analysis_mode: Literal["local", "cloud"] = Field(default="local")
