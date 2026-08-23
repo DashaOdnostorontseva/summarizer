@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings
@@ -21,9 +22,17 @@ class Settings(BaseSettings):
     ocr_lang: str = Field(default="rus")
     max_pages: int = Field(default=50, description="Макс. страниц для OCR/рендера")
     media_max_images: int = Field(default=5, description="Страниц-картинок в vision-модель")
+
+    # Прочее
+    max_file_size_mb: int = Field(default=25)
     prompt_file: str = Field(default="app/prompts/extract.md")
     log_level: str = Field(default="INFO")
     analysis_mode: Literal["local", "cloud"] = Field(default="local")
+
+    @property
+    def max_file_size_bytes(self) -> int:
+        return self.max_file_size_mb * 1024 * 1024
+
 
 @lru_cache
 def get_settings() -> Settings:

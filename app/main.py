@@ -49,7 +49,12 @@ def analyze(
     data = file.file.read()
     if not data:
         raise HTTPException(status_code=400, detail="Пустой файл")
-    
+    if len(data) > settings.max_file_size_bytes:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Размер файла превышает лимит {settings.max_file_size_mb} МБ",
+        )
+
     logger.debug("Файл получен: %s (%d байт)", filename, len(data))
 
     try:
