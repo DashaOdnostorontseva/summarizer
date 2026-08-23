@@ -15,7 +15,9 @@ class Settings(BaseSettings):
     llm_max_tokens: int = Field(default=2000)
     llm_timeout: float = Field(default=120.0)
 
+    max_pages: int = Field(default=50, description="Макс. страниц для рендера")
     prompt_file: str = Field(default="app/prompts/extract.md")
+    analysis_mode: Literal["local", "cloud"] = Field(default="local")
 
 @lru_cache
 def get_settings() -> Settings:

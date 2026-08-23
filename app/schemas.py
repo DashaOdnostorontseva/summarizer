@@ -2,6 +2,9 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+# Способ обработки: local — извлечение текста (pdfplumber или OCR), cloud — медиа в модель.
+ProcessMode = Literal["local", "cloud"]
+
 
 class ContractAmount(BaseModel):
     """Сумма контракта (цена)."""

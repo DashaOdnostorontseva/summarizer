@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 
 from . import extract
 from .config import get_settings
 from .llm import LLMClient, LLMError
 from .logging_conf import setup_logging
-from .schemas import ExtractionResult
+from .schemas import ExtractionResult, ProcessMode
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,10 @@ def health() -> dict:
 
 
 @app.post("/analyze", response_model=ExtractionResult)
-def analyze(file: UploadFile = File(...)) -> ExtractionResult:
+def analyze(
+    file: UploadFile = File(...),
+    mode: ProcessMode = Form(default=settings.analysis_mode),
+) -> ExtractionResult:
     if file.content_type not in _ALLOWED_MIME:
         raise HTTPException(status_code=400, detail="Ожидается PDF-файл (application/pdf)")
 
@@ -50,7 +53,7 @@ def analyze(file: UploadFile = File(...)) -> ExtractionResult:
     logger.debug("Файл получен: %s (%d байт)", filename, len(data))
 
     try:
-        doc = extract.extract_document(data)
+        doc = extract.extract_document(data, settings, mode=mode)
     except Exception as exc:
         logger.exception("Ошибка извлечения из PDF")
         raise HTTPException(status_code=422, detail="Не удалось прочитать PDF-файл") from exc
