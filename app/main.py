@@ -1,12 +1,30 @@
 from __future__ import annotations
 
+import logging
+
 from fastapi import FastAPI, File, HTTPException, UploadFile
 
 from . import extract
+from .config import get_settings
+from .llm import LLMClient, LLMError
+from .logging_conf import setup_logging
 from .schemas import ExtractionResult
+
+logger = logging.getLogger(__name__)
+
+settings = get_settings()
+setup_logging(settings.log_level)
 
 app = FastAPI(title="PDF Summarizer", version="0.1.0")
 
+_client: LLMClient | None = None
+
+
+def get_client() -> LLMClient:
+    global _client
+    if _client is None:
+        _client = LLMClient(settings)
+    return _client
 
 _ALLOWED_MIME = {None, "application/pdf", "application/octet-stream"}
 
@@ -28,9 +46,20 @@ def analyze(file: UploadFile = File(...)) -> ExtractionResult:
     data = file.file.read()
     if not data:
         raise HTTPException(status_code=400, detail="Пустой файл")
+    
+    logger.debug("Файл получен: %s (%d байт)", filename, len(data))
 
     try:
-        result = extract.extract_document(data)
-        return result
+        doc = extract.extract_document(data)
     except Exception as exc:
+        logger.exception("Ошибка извлечения из PDF")
         raise HTTPException(status_code=422, detail="Не удалось прочитать PDF-файл") from exc
+
+    if not settings.llm_api_key:
+        raise HTTPException(status_code=500, detail="LLM_API_KEY не задан")
+
+    try:
+        return get_client().extract(doc)
+    except LLMError as exc:
+        logger.error("Ошибка LLM: %s", exc)
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
