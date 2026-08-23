@@ -1,8 +1,10 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 class Settings(BaseSettings):
     # LLM
@@ -13,6 +15,7 @@ class Settings(BaseSettings):
     llm_max_tokens: int = Field(default=2000)
     llm_timeout: float = Field(default=120.0)
 
+    prompt_file: str = Field(default="app/prompts/extract.md")
 
 @lru_cache
 def get_settings() -> Settings:

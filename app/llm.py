@@ -1,9 +1,10 @@
 import json
 import logging
+from pathlib import Path
 
 from openai import OpenAI
 
-from .config import Settings
+from .config import BASE_DIR, Settings
 from .extract import ExtractedDoc
 from .schemas import ExtractionResult
 
@@ -24,12 +25,20 @@ class LLMClient:
             base_url=settings.llm_base_url,
             timeout=settings.llm_timeout,
         )
-        self.prompt_template = self._load_prompt()
+        self.prompt_template = self._load_prompt(settings.prompt_file)
 
     @staticmethod
-    def _load_prompt() -> str:
-        return "Извлеки из документа структурированные данные и верни строгий JSON."
-    
+    def _load_prompt(prompt_file: str) -> str:
+        logger.debug("[llm.py] call _load_prompt()")
+
+        path = Path(prompt_file)
+        if not path.is_absolute():
+            path = BASE_DIR / path
+        if not path.exists():
+            logger.warning("Файл промпта не найден: %s. Использую дефолт.", path)
+            return "Извлеки из документа структурированные данные и верни строгий JSON."
+        return path.read_text(encoding="utf-8")
+
     def _build_system_message(self) -> str:
         logger.debug("[llm.py] call _build_system_message()")
 
